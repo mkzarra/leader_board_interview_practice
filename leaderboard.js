@@ -100,14 +100,14 @@ class Player {
     return this.scores.reduce((a, c) => a + c.score, 0) / this.scores.length || 0;
   }
 
-  addNewScore = (score, dateCreated) => {
-    this.scores.push({ score, dateCreated });
+  addNewScore = (score, expires_at) => {
+    this.scores.push({ score, expires_at });
   }
 
 	expireScore = (exp) => {
 		for (let i = 0; i < this.scores.length; i++) {
-			console.log(this.scores[i].dateCreated, exp)
-			if (this.scores[i].dateCreated >= exp) {
+			console.log(this.scores[i].expires_at, exp)
+			if (this.scores[i].expires_at >= exp) {
 				this.scores[i] = 0;
       }
 		}
@@ -125,10 +125,10 @@ class LeaderBoard {
     this.players = {};
   }
 
-  add_score = (player_id, score, dateCreated) => {
+  add_score = (player_id, score, expires_at) => {
     const player = this.players[player_id] || new Player();
     this.players[player_id] = player;
-    player.addNewScore(score, dateCreated);
+    player.addNewScore(score, expires_at);
 		player.avg = player.getAvg();
 		
     return player.avg;
@@ -155,13 +155,17 @@ class LeaderBoard {
   }
 
 	setExpiration = (exp) => {
-		let returnValue = []
-    for (let player in this.players) {
+		const updatedScores = [];
+
+    for (const player in this.players) {
 			this.players[player].expireScore(exp);
-			returnValue.push({ [player]: this.players[player].scores.map(obj => JSON.stringify(obj)) })
+			updatedScores.push({
+				[player]: this.players[player].scores
+					.map(score => JSON.stringify(score))
+			});
 		}
 		
-    return returnValue;
+    return updatedScores;
   }
 
   reset = (player_id) => {
@@ -186,7 +190,7 @@ function array_equals(a, b) {
 }
 
 var leader_board = new LeaderBoard();
-
+// expiration of scores will be represented as an integer to simplify testing.
 leader_board.add_score(1, 50, 7);
 console.log(leader_board.add_score(2, 80, 8) == 80);
 console.log(leader_board.add_score(2, 7, 12) == 75);
@@ -199,10 +203,38 @@ console.log('Top 3 [' + leader_board.top(3) + '] should equal [3, 2, 1]:');
 console.log(array_equals(leader_board.top(3), [3, 2, 1]));
 console.log('Top 2 [' + leader_board.top(2) + '] should equal [3, 2]:');
 console.log(array_equals(leader_board.top(2), [3, 2]));
-// leader_board.reset(3);
+leader_board.reset(3);
 console.log('After reset top 3 [' + leader_board.top(3) + '] should equal [2, 1, 3]');
 console.log(array_equals(leader_board.top(3), [2, 1, 3]));
 console.log('After reset bottom 3 [' + leader_board.bottom(3) + '] should equal [3, 1, 2]');
 console.log('Bottom 2 [' + leader_board.bottom(2) + '] should equal [3, 1]');
-console.log(leader_board.players[1]);
-console.log('unexpired scores: ', leader_board.setExpiration(5000),'\nexpired scores: ', leader_board.setExpiration(6));
+
+// add scores back to leader_board.players['3'].scores to test expiration
+leader_board.add_score(3, 90, 6);
+leader_board.add_score(3, 85, 4);
+
+const unexpiredScores = [...leader_board.setExpiration(5000)],
+	unexpiredScoresTestArray = [
+  	{ '1': [ '{"score":50,"expires_at":7}' ] },
+  	{
+    	'2': [
+      	'{"score":80,"expires_at":8}',
+      	'{"score":7,"expires_at":12}',
+      	'{"score":60,"expires_at":7}'
+    	]
+  	},
+  	{
+    	'3': [ '{"score":90,"expires_at":6}', '{"score":85,"expires_at":4}' ]
+  	}
+	],
+	expiredScores = [...leader_board.setExpiration(8)],
+	expiredScoresTestArray = [
+  	{ '1': [ '{"score":50,"expires_at":7}' ] },
+  	{ '2': [ '{"score":60,"expires_at":7}' ] },
+  	{
+    	'3': [ '{"score":90,"expires_at":6}', '{"score":85,"expires_at":4}' ]
+  	}
+	];
+
+console.log('unexpired scores: ', unexpiredScores, '\nshould equal: ', unexpiredScoresTestArray);
+console.log('\nexpired scores: ',  expiredScores, '\nshould equal: ', expiredScoresTestArray);

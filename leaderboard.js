@@ -106,7 +106,6 @@ class Player {
 
 	expireScore = (exp) => {
 		for (let i = 0; i < this.scores.length; i++) {
-			console.log(this.scores[i].expires_at, exp)
 			if (this.scores[i].expires_at >= exp) {
 				this.scores[i] = 0;
       }

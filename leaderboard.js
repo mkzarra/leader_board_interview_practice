@@ -96,23 +96,27 @@ class Player {
     this.avg = this.getAvg();
   }
 
-  getAvg = () => {
-    return this.scores.reduce((a, c) => a + c.score, 0) / this.scores.length || 0;
+	getAvg = () => {
+		if (!this.scores.length) {
+			return 0;
+		}
+
+    return this.scores.reduce((a, c) => a + c.score, 0) / this.scores.length;
   }
 
   addNewScore = (score, expires_at) => {
     this.scores.push({ score, expires_at });
-  }
-
+	}
+	
 	expireScore = (exp) => {
 		for (let i = 0; i < this.scores.length; i++) {
 			if (this.scores[i].expires_at >= exp) {
 				this.scores[i] = 0;
-      }
+			}
 		}
 		this.scores = this.scores.filter(Boolean);
-    this.avg = this.getAvg();
-  }
+		this.avg = this.getAvg();
+	}
 
   resetScores = () => {
     return this.scores = [];
@@ -136,10 +140,10 @@ class LeaderBoard {
   rankPlayers = (num_players, top = true) => {
     const playersRanked = Object.entries(this.players);
     
-    if (!top) {
-      playersRanked.sort((a, b) => a[1].avg >= b[1].avg ? 1 : -1);
-    } else {
-      playersRanked.sort((a, b) => a[1].avg >= b[1].avg ? -1 : 1);
+    if (top) {
+      playersRanked.sort((a, b) => a[1].avg <= b[1].avg ? 1 : -1);
+		} else {
+      playersRanked.sort((a, b) => a[1].avg > b[1].avg ? 1 : -1);
     }
 
     return playersRanked.slice(0, num_players).map(p => parseInt(p[0]));
@@ -151,12 +155,12 @@ class LeaderBoard {
 
   bottom = (num_players) => {
     return this.rankPlayers(num_players, false);
-  }
-
+	}
+	
 	setExpiration = (exp) => {
 		const updatedScores = [];
-
-    for (const player in this.players) {
+		
+		for (const player in this.players) {
 			this.players[player].expireScore(exp);
 			updatedScores.push({
 				[player]: this.players[player].scores
@@ -164,13 +168,13 @@ class LeaderBoard {
 			});
 		}
 		
-    return updatedScores;
-  }
+		return updatedScores;
+	}
 
   reset = (player_id) => {
     const player = this.players[player_id] || new Player();
-    this.players[player_id] = player;
-    player.scores = player.resetScores();
+		this.players[player_id] = player;
+		player.resetScores();
     player.avg = player.getAvg();
   }
 }
@@ -180,7 +184,8 @@ class LeaderBoard {
 function array_equals(a, b) {
   if (a === b) return true;
   if (a == null || b == null) return false;
-  if (a.length != b.length) return false;
+	if (a.length != b.length) return false;
+	
   for (var i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) return false;
 	}
@@ -192,7 +197,7 @@ var leader_board = new LeaderBoard();
 // expiration of scores will be represented as an integer to simplify testing.
 leader_board.add_score(1, 50, 7);
 console.log(leader_board.add_score(2, 80, 8) == 80);
-console.log(leader_board.add_score(2, 7, 12) == 75);
+console.log(leader_board.add_score(2, 70, 12) == 75);
 console.log(leader_board.add_score(2, 60, 7) == 70);
 console.log('Add score should return the average. test with 1 score');
 console.log(leader_board.add_score(3, 90, 6) == 90);
